@@ -335,9 +335,9 @@ let cur=0;
 const E=()=>EV[cur];
 
 const PRESETS=[
- {id:'default',label:'Default',sub:'22k · 19k · 10k · 2 keys · 10k',rank:6,
-  spend:{rods:22000,zobo:19000,mara:10000,fert:10000},
-  hunt:{keyIdx:1,share:2}},
+ {id:'default',label:'15k pinballs per event',sub:'15k per event',rank:6,
+  spend:{rods:15000,zobo:15000,mara:15000,fert:15000},
+  hunt:{keyIdx:null,pinballs:15000,share:2}},
  {id:'f2p',label:'F2P Recommendation',sub:'22k · 19k · 10k · 2 keys · 10k',rank:6,
   spend:{rods:22000,zobo:19000,mara:10000,fert:10000},
   hunt:{keyIdx:1,share:2}},
@@ -367,8 +367,18 @@ function presetOverride(p,e){
   if(p.rank!=null)ov.rank=p.rank;
   return ov;
 }
+let activePresetId=null;
 function applyPreset(p){
   EV.forEach(e=>{Object.assign(e,presetOverride(p,e));});
+  activePresetId=p.id;
+  buildInputs();render();
+}
+function zeroAllSpend(){
+  EV.forEach(e=>{
+    if(e.id==='hunt'){e.you=[0,0,0,0];e.mate=[0,0,0,0];}
+    else{e.spent=0;}
+  });
+  activePresetId=null;
   buildInputs();render();
 }
 const numEq=(a,b)=>Math.abs((a||0)-(b||0))<1e-6;
@@ -381,6 +391,14 @@ function matchesPreset(p){
       return numEq(e[k],ov[k]);
     });
   });
+}
+function currentPreset(){
+  if(activePresetId){
+    const p=PRESETS.find(x=>x.id===activePresetId);
+    if(p&&matchesPreset(p))return p;
+    activePresetId=null;
+  }
+  return PRESETS.find(matchesPreset)||null;
 }
 function totalROIForState(overrideFn){
   let val=0,cost=0;
@@ -396,7 +414,7 @@ const presetTotalROI=p=>totalROIForState(e=>presetOverride(p,e));
 function renderPresets(){
   const gp=document.getElementById('globalPresets');gp.classList.add('global');
   gp.innerHTML='';
-  const activeP=PRESETS.find(matchesPreset);
+  const activeP=currentPreset();
   PRESETS.forEach(p=>{
     const b=document.createElement('button');b.type='button';
     b.className='preset'+(p===activeP?' on':'');
@@ -410,8 +428,9 @@ function renderPresets(){
     const roi=currentTotalROI(),sign=roi>=0?'+':'−';
     const b=document.createElement('button');b.type='button';
     b.className='preset'+(!activeP?' on':'');
-    b.disabled=true;
+    b.title='Set every event’s pinball spend to 0';
     b.innerHTML='Custom<small>'+sign+fmt(Math.abs(roi))+'% total ROI</small>';
+    b.addEventListener('click',zeroAllSpend);
     gp.appendChild(b);
   }
 }
@@ -995,6 +1014,10 @@ const NOTES={
  hunt:'Keys are not priced directly &mdash; they pay out through the 4/8/12/16 milestones. Each pair only counts its own combined pickaxes, and stage thresholds are cumulative, so a pair at 1,199 has cleared four stages rather than five.',
  fert:'Feeding uses max growth speed &mdash; 10 fertilizer gives 50 kg, scaled by it, and by the 1.25&times; crit average when crits are on. Natural growth runs at average speed over a fixed 72 h, and its kg are free, so they are netted off the fertilizer column.',
 };
+function syncHuntSpent(){
+  const h=EV.find(x=>x.id==='hunt');
+  if(h)h.spent=h.you.reduce((a,b)=>a+b,0)/(h.perPin||1);
+}
 function render(){
   const e=E();
   const nt=document.getElementById('note');
@@ -1004,6 +1027,7 @@ function render(){
   document.getElementById('ladder').hidden=stages;
   document.getElementById('pairs').hidden=!stages;
   if(stages)renderStages();else renderLadder();
+  syncHuntSpent();
   paintTabs();
   renderPresets();
   saveState();
