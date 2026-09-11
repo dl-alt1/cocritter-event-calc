@@ -1,0 +1,869 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Critter Event Value Calculator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+:root{--void:#150E29;--panel:#221741;--pin:#7FD4F0;--cream:#F0EAFF;
+  --dim:#8B7BB8;--line:#3A2C68;--accent:#F2A93B;--good:#6FD98F;--bad:#FF7A6B}
+*{box-sizing:border-box}
+body{margin:0;background:var(--void);color:var(--cream);
+  font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13px;line-height:1.45;
+  -webkit-text-size-adjust:100%}
+.wrap{max-width:640px;margin:0 auto;padding:20px 14px 60px}
+h1{font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:800;
+  font-size:clamp(23px,6.6vw,34px);line-height:1.02;margin:0 0 6px;letter-spacing:-.02em}
+h1 em{font-style:normal;color:var(--accent)}
+.sub{color:var(--dim);font-size:12px;margin:0 0 18px}
+h2{font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:700;font-size:12px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:24px 0 9px}
+h2 .sub2{font-family:'IBM Plex Mono',monospace;font-weight:400;letter-spacing:0;
+  text-transform:none;opacity:.7;margin-left:6px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.tab{flex:1 1 auto;min-width:84px;background:var(--panel);border:1px solid var(--line);
+  color:var(--dim);border-radius:10px;padding:11px 8px;
+  font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:13.5px;
+  cursor:pointer;transition:.15s;line-height:1.15}
+.tab:hover{color:var(--cream)}
+.tab[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:var(--void)}
+.tab small{display:block;font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:9.5px;
+  letter-spacing:.04em;opacity:.75;margin-top:3px;white-space:nowrap}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.swatch{width:12px;height:12px;border-radius:3px;flex:none}
+.name{flex:1;min-width:0}
+.name b{font-weight:500;display:block}
+.name small{color:var(--dim);font-size:10.5px;display:block;line-height:1.3}
+input[type=number]{width:96px;flex:none;background:var(--void);color:var(--cream);
+  border:1px solid var(--line);border-radius:7px;padding:7px 8px;font-family:inherit;
+  font-size:13px;font-variant-numeric:tabular-nums;text-align:right}
+input[type=number]:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.locked{width:96px;flex:none;text-align:right;color:var(--dim);padding:7px 9px}
+.chain{margin-top:9px;padding:11px 12px;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;font-size:11.5px;color:var(--dim);display:block;line-height:1.7}
+.chain b{color:var(--cream);font-weight:500;font-variant-numeric:tabular-nums}
+.chain u{text-decoration:none;color:var(--accent)}
+.chain .warn{color:var(--bad)}
+.reads{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.read{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+.read span{display:block;color:var(--dim);font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+.read b{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:20px;
+  display:block;margin-top:3px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+thead th{position:sticky;top:0;background:var(--void);z-index:2;font-weight:500;font-size:9.5px;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--dim);text-align:right;
+  padding:8px 4px 7px;border-bottom:1px solid var(--line)}
+thead th:first-child{text-align:left;padding-left:26px}
+tbody td{padding:6px 4px;text-align:right;border-bottom:1px solid rgba(58,44,104,.5);font-size:12.5px}
+tbody td:first-child{text-align:left;position:relative;padding-left:26px;color:var(--dim)}
+tbody tr.tier{cursor:pointer}
+tbody tr.tier:hover td{background:rgba(242,169,59,.06)}
+tbody td.heat{font-weight:500;border-radius:3px}
+tbody tr.here{box-shadow:inset 2px 0 0 var(--pin)}
+tbody tr.here td:first-child{color:var(--pin)}
+tbody tr.here td:first-child::after{content:'you';position:absolute;right:2px;top:50%;
+  transform:translateY(-50%);font-size:8.5px;letter-spacing:.08em;color:var(--pin)}
+tbody tr.past td{opacity:.45}
+tbody tr.det td{padding:0;border-bottom:1px solid rgba(58,44,104,.5)}
+.detbox{padding:9px 12px 11px 26px;font-size:11.5px;color:var(--dim);
+  background:rgba(21,14,41,.55);text-align:left;line-height:1.65}
+.detbox b{color:var(--cream);font-weight:500}
+.detbox .lbl{display:inline-block;min-width:74px;color:var(--dim);opacity:.8}
+.node{position:absolute;left:6px;top:50%;transform:translateY(-50%);width:9px;height:9px;
+  border-radius:50%;background:var(--line);border:2px solid var(--void)}
+.caret{position:absolute;left:4px;top:50%;transform:translateY(-50%);width:13px;
+  text-align:center;color:var(--dim);font-size:9px;transition:.15s}
+tbody tr.tier.open .caret{transform:translateY(-50%) rotate(90deg);color:var(--accent)}
+.railline{position:absolute;left:10px;top:0;bottom:0;width:1px;background:var(--line)}
+.tbl{position:relative}
+.legend{display:grid;grid-template-columns:auto 1fr auto auto;gap:6px 8px;align-items:center;
+  margin-top:12px;font-size:10px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
+.legend i{height:7px;border-radius:4px;display:block}
+.legend span:nth-child(3),.legend span:nth-child(4){font-variant-numeric:tabular-nums;
+  text-transform:none;letter-spacing:0}
+.legend span:nth-child(4){color:var(--cream)}
+.foot{color:var(--dim);font-size:11px;margin-top:14px;line-height:1.5}
+.foot b{color:var(--cream);font-weight:500}
+.note{color:var(--dim);font-size:10.5px;line-height:1.55;margin:9px 0 0;padding:9px 11px;
+  border-left:2px solid var(--line)}
+button.reset{background:none;border:1px solid var(--line);color:var(--dim);border-radius:7px;
+  padding:6px 11px;font-family:inherit;font-size:11px;cursor:pointer;margin-top:12px}
+button.reset:hover{border-color:var(--accent);color:var(--accent)}
+
+.seg{display:flex;flex:none;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.segb{background:var(--void);border:0;color:var(--dim);padding:7px 13px;
+  font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:11.5px;
+  cursor:pointer;transition:.15s}
+.segb+.segb{border-left:1px solid var(--line)}
+.segb:hover{color:var(--cream)}
+.segb.on{background:var(--accent);color:var(--void)}
+.budget{font-size:10.5px;color:var(--dim);padding:0 0 10px;line-height:1.5}
+.budget b{color:var(--cream);font-weight:500}
+.budget b.warn{color:var(--bad)}
+.presets{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:2px 0 10px}
+.preset{background:var(--void);border:1px solid var(--line);color:var(--dim);border-radius:9px;
+  padding:8px 4px;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:12px;
+  cursor:pointer;line-height:1.2;transition:.15s}
+.preset:hover{color:var(--cream);border-color:var(--dim)}
+.preset.on{background:var(--accent);border-color:var(--accent);color:var(--void)}
+.preset small{display:block;font-family:'IBM Plex Mono',monospace;font-weight:400;
+  font-size:9px;opacity:.75;margin-top:2px}
+.sel{width:96px;flex:none;background:var(--void);color:var(--cream);
+  border:1px solid var(--line);border-radius:7px;padding:7px 8px;font-family:inherit;
+  font-size:13px;text-align:right;cursor:pointer}
+.sel:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.grid4{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mini{background:var(--void);border:1px solid var(--line);border-radius:9px;padding:8px 9px}
+.mini label{display:block;color:var(--dim);font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;margin-bottom:4px}
+.mini input{width:100%}
+.pair{border:1px solid var(--line);border-radius:12px;background:var(--panel);
+  margin-bottom:8px;overflow:hidden}
+.pairhd{display:flex;align-items:center;gap:9px;padding:11px 12px;cursor:pointer}
+.pairhd .ttl{flex:1;font-weight:500}
+.pairhd .ttl small{display:block;color:var(--dim);font-size:10.5px;font-weight:400}
+.pairhd .val{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:500}
+.pairhd .car{color:var(--dim);font-size:10px;transition:.15s}
+.pair.open .pairhd .car{transform:rotate(90deg);color:var(--accent)}
+.pairbody{display:none;padding:0 12px 12px;font-size:11.5px;color:var(--dim);line-height:1.7}
+.pair.open .pairbody{display:block}
+.stg{display:flex;gap:8px;padding:4px 0;border-top:1px solid rgba(58,44,104,.5)}
+.stg .n{width:58px;color:var(--dim)}
+.stg .r{flex:1;color:var(--cream)}
+.stg .c{font-variant-numeric:tabular-nums}
+.stg.miss{opacity:.38}
+[hidden]{display:none !important}
+</style>
+
+<div class="wrap">
+<h1>Event value <em>calculator</em></h1>
+<p class="sub">Price the rewards once, then see what each event pays back.</p>
+
+<h2>Reward values <span class="sub2">shared by every event</span></h2>
+<div class="card" id="inputs"></div>
+
+<h2>Event</h2>
+<div class="tabs" role="tablist"></div>
+
+<div id="rankwrap">
+<h2>Team ranking reward</h2>
+<div class="card" id="rankcard"></div>
+</div>
+
+<h2>Spend</h2>
+<div class="card" id="spend"></div>
+<div class="chain" id="chain"></div>
+<p class="note" id="note" hidden></p>
+
+<div class="reads" id="reads"></div>
+
+<div id="ladder">
+  <h2>Breakpoints <span class="sub2">tap a row</span></h2>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Reach</th><th id="hC">Need</th><th id="hA">Reward</th><th>Cumul.</th><th id="hB">Rate</th></tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+  </div>
+  <div class="legend"><span id="lgA">Value</span><i id="ramp1"></i>
+    <span id="ramp1lo"></span><span id="ramp1hi"></span></div>
+  <div class="legend"><span id="lgB">Rate</span><i id="ramp2"></i>
+    <span id="ramp2lo"></span><span id="ramp2hi"></span></div>
+  <p class="foot" id="foot"></p>
+</div>
+
+<div id="pairs" hidden>
+  <h2>Pairs <span class="sub2">tap to expand</span></h2>
+  <div id="pairlist"></div>
+  <p class="foot" id="pairfoot"></p>
+</div>
+
+<button class="reset" id="reset">Reset</button>
+</div>
+<script>
+const RODS_T=[
+[1e3,30,0,0,0,0,0],[5e3,30,0,0,0,0,0],[1e4,30,5,0,0,0,0],
+[2e4,30,0,0,0,0,0],[5e4,30,0,0,0,0,0],[1e5,60,5,0,1,0,0],
+[2e5,30,0,0,0,0,0],[3e5,30,0,2,0,0,0],[4e5,30,0,0,0,0,0],
+[5e5,30,0,0,0,0,0],[6e5,90,10,0,0,1,0],[8e5,30,0,0,0,0,0],
+[1e6,30,10,0,0,0,0],[1.2e6,60,0,0,0,0,0],[1.4e6,120,0,3,0,0,0],
+[1.6e6,120,0,0,1,0,0],[1.8e6,120,10,0,0,0,0],[2e6,120,0,0,0,0,0],
+[2.2e6,150,0,0,0,0,0],[2.4e6,150,10,0,0,0,0],[2.6e6,240,0,0,0,0,0],
+[2.8e6,120,0,0,0,0,0],[3e6,180,10,0,0,0,0],[3.2e6,120,0,0,0,1,0],
+[3.4e6,120,0,0,0,0,0],[3.6e6,120,0,0,0,0,0],[3.8e6,150,15,0,0,0,0],
+[4e6,120,0,0,0,0,0],[4.2e6,120,0,0,0,0,0],[4.4e6,180,15,0,0,0,0],
+[4.6e6,180,0,0,0,0,0],[4.8e6,180,0,0,0,0,0],[5e6,240,15,0,0,0,1],
+[5.2e6,120,0,0,0,0,0],[5.4e6,120,0,0,0,0,0],[5.6e6,120,0,0,0,0,0],
+[5.8e6,150,20,0,0,0,0],[6e6,150,0,0,0,0,0],[6.2e6,150,0,0,0,0,0],
+[6.4e6,180,0,0,0,0,0],[6.6e6,240,0,5,0,0,0],[6.8e6,180,0,0,0,0,0],
+[7e6,180,0,0,0,0,0],[7.2e6,300,20,0,0,1,0],[7.5e6,180,0,0,0,0,0],
+[8e6,360,0,5,0,0,0],[8.5e6,180,0,0,0,0,0],[9e6,360,20,0,0,0,0],
+[9.5e6,180,0,0,0,0,0],[1e7,360,0,5,0,0,1],[1.05e7,180,0,0,0,0,0],
+[1.1e7,180,0,0,0,0,0],[1.15e7,180,0,0,0,0,0],[1.2e7,240,30,0,0,0,0],
+[1.25e7,180,0,0,0,0,0],[1.3e7,180,0,0,0,0,0],[1.35e7,180,0,0,0,0,0],
+[1.4e7,180,0,0,0,0,0],[1.45e7,180,0,0,0,0,0],[1.5e7,300,30,0,0,1,0],
+[1.55e7,180,0,0,0,0,0],[1.6e7,180,0,0,0,0,0],[1.65e7,180,0,0,0,0,0],
+[1.7e7,180,0,0,0,0,0],[1.75e7,180,0,0,0,0,0],[1.8e7,450,30,0,0,0,0],
+[1.85e7,180,0,0,0,0,0],[1.9e7,180,0,0,0,0,0],[1.95e7,180,0,0,0,0,0],
+[2e7,600,0,5,0,0,1]];
+const ZOBO_T=[
+[200000,30,0,0,0,0,0],[400000,30,0,0,0,0,0],[800000,30,5,0,0,0,0],[1200000,30,0,0,0,0,0],
+[1600000,30,0,0,0,0,0],[2000000,60,5,0,1,0,0],[2400000,30,0,0,0,0,0],[2800000,30,0,2,0,0,0],
+[3200000,30,0,0,0,0,0],[3600000,30,0,0,0,0,0],[4000000,90,10,0,0,1,0],[5000000,30,0,0,0,0,0],
+[6000000,30,10,0,0,0,0],[7000000,60,0,0,0,0,0],[8000000,120,0,3,0,0,0],[8400000,120,0,0,1,0,0],
+[8800000,120,10,0,0,0,0],[9200000,120,0,0,0,0,0],[9600000,150,0,0,0,0,0],[10000000,150,10,0,0,0,0],
+[10400000,240,0,0,0,0,0],[10800000,120,0,0,0,0,0],[11200000,180,10,0,0,0,0],[11600000,120,0,0,0,1,0],
+[12000000,120,0,0,0,0,0],[12400000,120,0,0,0,0,0],[12800000,150,15,0,0,0,0],[13600000,120,0,0,0,0,0],
+[14400000,120,0,0,0,0,0],[15200000,180,15,0,0,0,0],[16000000,180,0,0,0,0,0],[16800000,180,0,0,0,0,0],
+[17600000,240,15,0,0,0,1],[18400000,120,0,0,0,0,0],[19200000,120,0,0,0,0,0],[20000000,120,0,0,0,0,0],
+[20800000,150,20,0,0,0,0],[21600000,150,0,0,0,0,0],[22400000,150,0,0,0,0,0],[23200000,180,0,0,0,0,0],
+[24000000,240,0,5,0,0,0],[26000000,180,0,0,0,0,0],[28000000,180,0,0,0,0,0],[30000000,300,20,0,0,1,0],
+[32000000,180,0,0,0,0,0],[36000000,360,0,5,0,0,0],[40000000,180,0,0,0,0,0],[44000000,360,20,0,0,0,0],
+[52000000,180,0,0,0,0,0],[60000000,360,0,5,0,0,1],[62000000,180,0,0,0,0,0],[64000000,180,0,0,0,0,0],
+[66000000,180,0,0,0,0,0],[68000000,240,30,0,0,0,0],[70000000,180,0,0,0,0,0],[72000000,180,0,0,0,0,0],
+[74000000,180,0,0,0,0,0],[76000000,180,0,0,0,0,0],[78000000,180,0,0,0,0,0],[80000000,300,30,0,0,1,0],
+[82000000,180,0,0,0,0,0],[84000000,180,0,0,0,0,0],[86000000,180,0,0,0,0,0],[88000000,180,0,0,0,0,0],
+[90000000,180,0,0,0,0,0],[92000000,450,30,0,0,0,0],[94000000,180,0,0,0,0,0],[96000000,180,0,0,0,0,0],
+[98000000,180,0,0,0,0,0],[100000000,600,0,5,0,0,1]];
+const MARA_T=[
+[500,0,0,0,0,0,0],[1000,30,0,0,0,0,0],[1500,30,0,0,0,0,0],[2000,0,1,0,0,0,0],
+[2500,0,0,0,0,0,0],[3000,30,0,0,0,0,0],[3500,0,0,0,0,0,0],[4000,60,0,0,0,0,0],
+[4500,40,0,0,0,0,0],[5000,0,0,0,1,0,0],[5500,60,0,0,0,0,0],[6000,0,5,0,0,0,0],
+[6500,0,0,0,0,0,0],[7000,60,0,0,0,0,0],[8000,0,5,0,0,0,0],[8500,60,0,0,0,0,0],
+[9000,0,0,0,0,0,0],[9500,60,0,0,0,0,0],[10000,0,0,0,0,0,0],[11000,60,0,0,0,0,0],
+[12000,160,0,0,0,0,0],[13000,0,0,0,0,0,0],[14000,90,0,0,0,0,0],[15000,0,0,0,0,1,0],
+[16000,160,0,0,0,0,0],[18000,60,0,0,0,0,0],[20000,0,0,0,0,0,0],[22000,60,0,0,0,0,0],
+[24000,0,5,0,0,0,0],[26000,0,0,0,0,0,0],[28000,180,0,0,0,0,0],[30000,0,0,0,0,1,0],
+[32000,0,0,5,0,0,0],[36000,240,0,0,0,0,0],[40000,0,0,0,0,0,0],[44000,0,10,0,0,0,0],
+[48000,240,0,0,0,0,0],[52000,0,0,0,0,1,0],[56000,0,10,0,0,0,0],[60000,240,0,0,0,0,0],
+[64000,0,0,0,0,0,0],[68000,0,0,2,0,0,0],[72000,240,0,0,0,0,0],[76000,0,0,0,0,0,0],
+[80000,0,10,0,0,0,0],[84000,180,0,0,0,0,0],[88000,0,0,0,0,0,1],[92000,0,10,0,0,0,0],
+[96000,0,0,2,0,0,0],[100000,0,0,0,0,0,0],[104000,0,10,0,0,0,0],[108000,180,0,0,0,0,0],
+[124000,0,0,0,1,0,0],[128000,0,0,2,0,0,0]];
+const FERT_T=[
+[150,60,0,0,0,0,0,0],[2000,0,3,0,0,0,0,0],[3200,0,0,1,0,0,0,0],
+[4200,0,0,0,1,0,0,0],[5300,0,0,0,0,1,0,0],
+[6300,60,0,0,0,0,0,0],[7400,0,3,0,0,0,0,0],[8400,0,0,1,0,0,0,0],[9600,60,0,0,0,0,0,0],
+[10600,0,4,0,0,0,0,0],[11800,60,0,0,0,0,0,0],[12800,0,4,0,0,0,0,0],[13900,0,0,1,0,0,0,0],
+[15100,60,0,0,0,0,0,0],[16000,0,4,0,0,0,0,0],[17100,0,0,0,0,1,0,0],[18200,60,0,0,0,0,0,0],
+[19300,0,0,1,0,0,0,0],[20000,0,4,0,0,0,0,0],[21900,60,0,0,0,0,0,0],[23000,0,4,0,0,0,0,0],
+[24000,60,0,0,0,0,0,0],[25100,0,0,1,0,0,0,0],[26000,0,4,0,0,0,0,0],[27000,60,0,0,0,0,0,0],
+[33200,75,0,0,0,0,0,0],[35100,0,0,1,0,0,0,0],[37000,0,0,0,0,1,0,0],[41100,75,0,0,0,0,0,0],
+[42900,90,0,0,0,0,0,0],[44700,0,0,1,0,0,0,0],[48500,90,0,0,0,0,0,0],[53400,135,0,0,0,0,0,0],
+[57600,0,10,0,0,0,0,0],[59800,0,0,1,0,0,0,0],[64100,0,0,0,0,0,1,0],[66100,135,0,0,0,0,0,0],
+[70300,0,10,0,0,0,0,0],[74500,0,0,1,0,0,0,0],[76600,150,0,0,0,0,0,0],[88000,150,0,0,0,0,0,0],
+[95000,0,7,0,0,0,0,0],[99000,0,0,1,0,0,0,0],[105000,150,0,0,0,0,0,0],[112000,150,0,0,1,0,0,0],
+[119000,0,7,0,0,0,0,0],[125000,150,0,0,0,0,0,0],[130000,0,0,1,0,0,0,0],[136000,150,0,0,0,0,0,0],
+[142000,0,7,0,0,0,1,0],[149000,150,0,0,0,0,0,0],[156000,150,0,0,0,0,0,0],[160000,0,7,0,0,0,0,0],
+[165000,0,0,1,0,0,0,0],[172000,150,0,0,0,0,0,0],[179000,150,0,0,0,0,0,0],[185000,0,7,0,0,0,0,0],
+[189000,150,0,0,0,0,0,0],[227000,375,0,0,0,0,0,0],[260000,0,10,0,0,0,0,0],[291000,0,0,2,0,0,0,0],
+[322000,0,0,0,0,0,0,0],[353000,0,0,0,0,1,0,0],[386000,0,0,0,0,0,0,0],[418000,375,0,0,0,0,0,0],
+[448000,0,10,0,0,0,0,0],[479000,375,0,0,0,0,0,0],[512000,0,10,0,0,0,0,0],[542000,0,0,3,0,0,0,0],
+[573000,375,0,0,0,0,0,0],[603000,0,10,0,0,0,0,0],[636000,375,0,0,0,0,0,0],[666000,0,10,0,0,0,0,0],
+[697000,0,0,0,0,1,0,0],[728000,375,0,0,0,0,0,0],[758000,0,10,0,0,0,0,0],[789000,0,0,3,0,0,0,0],
+[819000,375,0,0,0,0,0,0],[848000,0,10,0,0,0,0,0],[879000,375,0,0,0,0,0,0],[910000,0,10,0,0,0,0,0],
+[939000,90,0,0,0,0,0,0],[968000,0,5,0,0,0,0,0],[997000,0,0,2,0,0,0,0],[1025000,0,0,0,0,0,0,0],
+[1052000,0,0,0,0,0,1,0],[1082000,90,0,0,0,0,0,0],[1111000,0,5,0,0,0,0,0],[1140000,0,0,2,0,0,0,0],
+[1166000,105,0,0,0,0,0,0],[1196000,0,5,0,0,0,0,0],[1225000,0,0,2,0,0,0,0],[1254000,105,0,0,0,0,1,0],
+[1281000,0,5,0,0,0,0,0],[1310000,0,0,2,0,0,0,0],[1339000,105,0,0,0,0,0,0],[1367000,0,5,0,0,0,0,0],
+[1394000,0,0,2,0,0,0,0],[1424000,105,0,0,0,0,0,0],[1453000,0,0,0,0,0,1,0]];
+
+// Treasure Hunt — cumulative pickaxe per teammate pair
+const HUNT_S=[
+ [160,{pin:60}],[340,{cap:10}],[530,{key:1,blue:1}],[860,{pin:180}],
+ [1200,{cap:15}],[1550,{key:1,blue:1}],[2050,{pin:240}],[2590,{cap:20}],
+ [3190,{key:1,purp:1}],[4050,{pin:600}],[4925,{cap:25}],[5950,{key:1,gold:1}]];
+
+// milestones on the combined key count across all four pairs
+const KEYREWARDS=[[4,{pin:500,box:5}],[8,{pin:1000,box:10}],
+                  [12,{pin:1500,box:10}],[16,{pin:1500,box:15}]];
+
+const RANKS=[
+ [1,{box:10,cap:45}],[2,{box:9,cap:35}],[3,{box:8,cap:30}],[4,{box:7,cap:25}],
+ [5,{box:6,cap:20}],[6,{box:5,cap:10}],[7,{box:5,cap:10}],[8,{box:5,cap:10}],
+ [9,{box:5,cap:10}],[10,{box:5,cap:10}]];
+const rankBag=r=>{const f=RANKS.find(x=>x[0]===Math.max(1,Math.min(10,r||1)));return f?f[1]:{};};
+
+const KEYSTAGES=HUNT_S.filter(x=>x[1].key).map(x=>x[0]);
+
+const RES=[
+ {k:'pin', i:1,n:'Pinball',     c:'#9B7DF5', v:1, lock:true},
+ {k:'cap', i:2,n:'Capsule',     c:'#7FD4F0', v:40},
+ {k:'box', i:3,n:'Wishbox',     c:'#FF8A3D', v:600},
+ {k:'blue',i:4,n:'Blue pack',   c:'#5BB8F5', v:0},
+ {k:'purp',i:5,n:'Purple pack', c:'#C060E8', v:100},
+ {k:'gold',i:6,n:'Gold pack',   c:'#F2A93B', v:600},
+ {k:'key', i:7,n:'Key',         c:'#E8C45B', v:0, noval:true},
+];
+const VALS={pin:1,cap:40,box:600,blue:0,purp:100,gold:600,key:0};
+const DEFVALS=Object.assign({},VALS);
+
+const EV=[
+ {id:'rods',label:'Fishing',unit:'rod',units:'rods',accent:'#F2A93B',
+  T:RODS_T,W:5e5,mode:'tiers',rank:3,spent:20000,perPin:0.22,
+  r1:1250,r2:1500,r3:1750,r4:2500},
+ {id:'zobo',label:'Zobo Shooter',unit:'coin',units:'coins',accent:'#5BD6C0',
+  T:ZOBO_T,W:5e6,mode:'tiers',rank:3,spent:20000,perPin:22,ptsPer:200000,pct:25},
+ {id:'mara',label:'Marathon Party',unit:'skate',units:'skates',accent:'#F27A9B',
+  T:MARA_T,W:1e4,mode:'tiers',rank:3,spent:20000,perPin:0.22,ptsPer:5,pct:25},
+ {id:'hunt',label:'Treasure Hunt',unit:'pickaxe',units:'pickaxes',accent:'#C9A227',
+  kind:'stages',S:HUNT_S,spent:20000,perPin:0.22,
+  share:2,you:[1595,1595,1595,1595],mate:[1595,1595,1595,1595]},
+ {id:'fert',label:'Cozy Farm',unit:'fertilizer',units:'fertilizer',accent:'#6FD98F',
+  T:FERT_T,W:5e4,mode:'tiers',rank:3,spent:20000,perPin:0.44,speed:250,avg:150,crits:true},
+];
+const DEF=EV.map(e=>JSON.parse(JSON.stringify(
+  {rank:e.rank,spent:e.spent,perPin:e.perPin,ptsPer:e.ptsPer,r1:e.r1,r2:e.r2,r3:e.r3,r4:e.r4,speed:e.speed,avg:e.avg,crits:e.crits,
+   pct:e.pct,share:e.share,you:e.you,mate:e.mate})));
+let cur=0;
+const E=()=>EV[cur];
+
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+const sig=n=>n>=100?fmt(n):(Math.round(n*100)/100).toLocaleString('en-US');
+const mk=p=>(p/1e6).toFixed(1)+'M';
+const dist=m=>m>=1000?(m/1000)+'km':m+'m';
+const exact=p=>p>=1e6?(p/1e3).toLocaleString('en-US')+'K'
+  :(p>=1000&&p%1000===0?(p/1000)+'K':p.toLocaleString('en-US'));
+const tierLabel=(e,p)=>e.id==='mara'?dist(p):(e.mode==='tiers'?exact(p):mk(p));
+const txt=(v,e)=>typeof v==='function'?v(e):v;
+
+const LUCK=[[0,8e5,'r1'],[8e5,2.2e6,'r2'],[2.2e6,5.6e6,'r3'],[5.6e6,Infinity,'r4']];
+function rodsFor(e,target){
+  let rods=0;
+  for(const [lo,hi,k] of LUCK){
+    const span=Math.max(0,Math.min(target,hi)-lo);
+    if(span<=0)continue;
+    const rate=e[k]||0;
+    if(!rate)return Infinity;
+    rods+=span/rate;
+  }
+  return rods;
+}
+function pointsFromRods(e,rods){
+  let pts=0,left=rods;
+  for(const [lo,hi,k] of LUCK){
+    const rate=e[k]||0;
+    if(!rate)break;
+    const cap=(hi-lo)/rate;                 // rods to cross this band
+    if(left<=cap)return pts+left*rate;
+    left-=cap;pts=hi;
+  }
+  return pts;
+}
+
+const KG=5, CRIT=1.25, HOURS=72;
+function grow(e){
+  const fert=e.spent*e.perPin, m=(e.speed||0)/100, a=(e.avg||0)/100;
+  const rate=KG*(1+m)*(e.crits?CRIT:1);      // feeding, at max speed
+  const natural=3*(1+a)*HOURS;               // 3 kg/hr for 72 h, at average speed
+  const fed=fert*rate;
+  return {fert:fert,rate:rate,fed:fed,natural:natural,
+          total:fed+natural,mult:1+m,amult:1+a};
+}
+function pointsOf(e){
+  if(e.id==='fert')return grow(e).total;
+  if(e.id==='rods')return pointsFromRods(e,e.spent*e.perPin);
+  const own=e.spent*e.perPin*e.ptsPer*(e.id==='zobo'?1e-4:e.id==='mara'?1e3:1);
+  const pct=Math.max(0.0001,(e.pct||100)/100);
+  return (e.id==='zobo'||e.id==='mara')?own/pct:own;
+}
+function currencyFor(e,target){
+  if(e.id==='fert'){const g=grow(e);return g.rate?Math.max(0,(target-g.natural)/g.rate):0;}
+  if(e.id==='rods')return rodsFor(e,target);
+  if(e.id==='zobo'||e.id==='mara'){
+    const pct=Math.max(0.0001,(e.pct||100)/100);
+    const per=e.ptsPer*(e.id==='zobo'?1e-4:e.id==='mara'?1e3:1);
+    return per?target*pct/per:0;}
+  return e.ptsPer?target/e.ptsPer:0;
+}
+const bagValue=b=>RES.reduce((a,r)=>a+(b[r.k]||0)*(VALS[r.k]||0),0);
+const bagText=b=>{
+  const p=[];
+  RES.forEach(r=>{if(b[r.k])p.push(fmt(b[r.k])+' '+r.n.toLowerCase()+(b[r.k]>1&&r.k!=='pin'?(r.k==='box'?'es':'s'):''));});
+  return p.length?p.join(' + '):'nothing';
+};
+
+function summarise(e){
+  if(e.kind==='stages'){
+    const total={};let sum=0;
+    e.you.forEach((v,i)=>{
+      const tot=v+(e.mate[i]||0), bag={};
+      e.S.forEach(st=>{if(tot>=st[0])for(const k in st[1])bag[k]=(bag[k]||0)+st[1][k];});
+      sum+=bagValue(bag);
+      for(const k in bag)total[k]=(total[k]||0)+bag[k];
+    });
+    const keys=total.key||0, kbag={};
+    KEYREWARDS.forEach(([need,rw])=>{if(keys>=need)for(const k in rw)kbag[k]=(kbag[k]||0)+rw[k];});
+    const cost=e.you.reduce((a,b)=>a+b,0)/(e.perPin||1);
+    return {value:sum+bagValue(kbag),cost:cost};
+  }
+  const worth=t=>RES.reduce((a,r)=>a+(t[r.i]||0)*(VALS[r.k]||0),0);
+  const pts=pointsOf(e);
+  let cum=0;
+  e.T.forEach(t=>{if(t[0]<=pts)cum+=worth(t);});
+  return {value:cum+bagValue(rankBag(e.rank)),cost:e.spent};
+}
+function roiOf(e){
+  const {value,cost}=summarise(e);
+  return cost>0?(value-cost)/cost*100:0;
+}
+const ORD=n=>n+(['th','st','nd','rd'][(n%100-n%10!=10)*(n%10<4)*n%10]||'th');
+
+function paintTabs(){
+  const scored=EV.map((e,i)=>({i:i,r:roiOf(e)}));
+  const order=scored.slice().sort((a,b)=>b.r-a.r);
+  const place={};order.forEach((x,n)=>place[x.i]=n+1);
+  document.querySelectorAll('.tab').forEach((b,i)=>{
+    const r=scored[i].r;
+    const sign=r>=0?'+':'\u2212';
+    b.innerHTML=EV[i].label+'<small>'+ORD(place[i])+' &middot; '+sign+
+      fmt(Math.abs(r))+'%</small>';
+  });
+}
+
+const SPEND={
+ rods:[{k:'spent',n:'Total pinballs spent',d:e=>'what you put into '+e.label,step:1000},
+       {k:'perPin',n:e=>e.units+' per pinball',d:'conversion rate',step:0.05},
+       {k:'r1',n:'Points per rod &middot; 1 luck',d:'up to 800K points',step:50},
+       {k:'r2',n:'Points per rod &middot; 2 luck',d:'800K &ndash; 2.2M',step:50},
+       {k:'r3',n:'Points per rod &middot; 3 luck',d:'2.2M &ndash; 5.6M',step:50},
+       {k:'r4',n:'Points per rod &middot; 4 luck',d:'5.6M and above',step:50}],
+ zobo:[{k:'spent',n:'Total pinballs spent',d:'your own spend',step:1000},
+       {k:'perPin',n:'Coins per pinball',d:'conversion rate',step:1},
+       {k:'ptsPer',n:'Points per 10,000 coins',d:'100,000 coins = 2,000,000 points',step:10000},
+       {k:'pct',n:'Your contribution %',d:'your share of the team total',step:5}],
+ mara:[{k:'spent',n:'Total pinballs spent',d:'your own spend',step:1000},
+       {k:'perPin',n:'Skates per pinball',d:'conversion rate',step:0.05},
+       {k:'ptsPer',n:'Kilometres per skate',d:'distance each skate covers',step:1},
+       {k:'pct',n:'Your contribution %',d:'your share of the team total',step:5}],
+ hunt:[{k:'spent',n:'Total pinballs spent',d:'your own spend',step:1000},
+       {k:'perPin',n:'Pickaxes per pinball',d:'conversion rate',step:0.05}],
+ fert:[{k:'spent',n:'Total pinballs spent',d:'what you put into Cozy Farm',step:1000},
+       {k:'perPin',n:'Fertilizer per pinball',d:'conversion rate',step:0.05},
+       {k:'speed',n:'Max growth speed %',d:'applies to feeding; 250 gives 175 kg per 10 fertilizer',step:1},
+       {k:'avg',n:'Average growth speed %',d:'drives the 72 h of natural growth',step:10}],
+};
+
+function buildInputs(){
+  const e=E();
+  document.documentElement.style.setProperty('--accent',e.accent);
+
+  const sp=document.getElementById('spend');sp.innerHTML='';
+  SPEND[e.id].forEach(f=>{
+    const row=document.createElement('div');row.className='row';
+    row.innerHTML='<span class="name"><b>'+txt(f.n,e)+'</b><small>'+txt(f.d,e)+'</small></span>';
+    const inp=document.createElement('input');
+    inp.type='number';inp.min='0';inp.step=f.step;inp.value=e[f.k];
+    inp.setAttribute('aria-label',txt(f.n,e));
+    inp.addEventListener('input',function(){e[f.k]=parseFloat(inp.value)||0;render();});
+    row.appendChild(inp);sp.appendChild(row);
+  });
+  if(e.id==='fert'){
+    const row=document.createElement('div');row.className='row';
+    row.innerHTML='<span class="name"><b>Include feed crits</b>'+
+      '<small>10% 2&times;, 4% 3&times;, 1% 4&times;, 1% 5&times; &mdash; averages 1.25&times;</small></span>';
+    const lab=document.createElement('label');lab.style.cssText='position:relative;flex:none;width:44px;height:24px;cursor:pointer';
+    const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!e.crits;
+    cb.style.cssText='position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;width:100%;height:100%';
+    cb.addEventListener('change',function(){e.crits=cb.checked;render();});
+    const sw=document.createElement('span');
+    sw.style.cssText='position:absolute;inset:0;border-radius:12px;pointer-events:none;transition:.15s;'+
+      'background:'+(e.crits?e.accent:'var(--void)')+';border:1px solid '+(e.crits?e.accent:'var(--line)');
+    const kn=document.createElement('span');
+    kn.style.cssText='position:absolute;top:3px;width:16px;height:16px;border-radius:50%;transition:.15s;'+
+      'left:'+(e.crits?'23px':'3px')+';background:'+(e.crits?'var(--void)':'var(--dim)');
+    sw.appendChild(kn);lab.appendChild(cb);lab.appendChild(sw);row.appendChild(lab);sp.appendChild(row);
+  }
+  if(e.id==='hunt'){
+    const ph=document.createElement('div');ph.className='row';
+    const mineNow=e.you.reduce((a,b)=>a+b,0);
+    ph.innerHTML='<span class="name"><b>Target</b><small>pinballs you need for that many keys '+
+      'across all four pairs, at '+(e.share===2?'an even split':'solo')+
+      ' &middot; currently <b style="color:var(--cream)">'+fmt(mineNow/(e.perPin||1))+
+      ' pb</b></small></span>';
+    sp.appendChild(ph);
+    const pr=document.createElement('div');pr.className='presets';
+    KEYSTAGES.forEach((need,n)=>{
+      const b=document.createElement('button');b.type='button';b.className='preset';
+      const parts=e.share||1;
+      const pb=(need/parts)*4/(e.perPin||1);
+      b.innerHTML=(n+1)+' key'+(n?'s':'')+'<small>'+fmt(pb)+' pb</small>';
+      if(e.you.every((v,i)=>v+e.mate[i]===need))b.classList.add('on');
+      b.addEventListener('click',function(){
+        const parts=e.share||1, mine=need/parts;
+        e.you=[mine,mine,mine,mine];
+        e.mate=[need-mine,need-mine,need-mine,need-mine];
+        buildInputs();render();});
+      pr.appendChild(b);
+    });
+    sp.appendChild(pr);
+    const bl=document.createElement('div');bl.className='budget';
+    const have=e.spent, needNow=e.you.reduce((a,b)=>a+b,0)/(e.perPin||1);
+    bl.innerHTML=needNow<=have
+      ? 'Your '+fmt(have)+' pinballs cover this with <b>'+fmt(have-needNow)+'</b> to spare.'
+      : 'Short by <b class="warn">'+fmt(needNow-have)+'</b> pinballs &mdash; raise total spend or switch to Split.';
+    sp.appendChild(bl);
+    ['you','mate'].forEach(side=>{
+      const hd=document.createElement('div');hd.className='row';
+      hd.innerHTML='<span class="name"><b>'+(side==='you'?'Your contribution':'Partner contribution')+
+        '</b><small>'+(side==='you'?'pickaxes you put into each pair':'pickaxes your partner adds to each pair')+'</small></span>';
+      if(side==='mate'){
+        const grp=document.createElement('div');grp.className='seg';
+        [['Solo',1],['Split',2]].forEach(([lab,parts])=>{
+          const b=document.createElement('button');
+          b.type='button';b.className='segb'+(e.share===parts?' on':'');
+          b.textContent=lab;
+          b.title=parts===1?'You cover every pickaxe':'You and your partner each cover half';
+          b.addEventListener('click',function(){
+            e.share=parts;
+            for(let i=0;i<4;i++){
+              const tot=(e.you[i]||0)+(e.mate[i]||0);
+              e.you[i]=tot/parts;e.mate[i]=tot-tot/parts;
+            }
+            buildInputs();render();
+          });
+          grp.appendChild(b);
+        });
+        hd.appendChild(grp);
+      }
+      sp.appendChild(hd);
+      const g=document.createElement('div');g.className='grid4';g.style.padding='4px 0 8px';
+      e[side].forEach((v,i)=>{
+        const m=document.createElement('div');m.className='mini';
+        m.innerHTML='<label>Pair '+(i+1)+'</label>';
+        const inp=document.createElement('input');
+        inp.type='number';inp.min='0';inp.step='50';inp.value=v;
+        inp.setAttribute('aria-label',(side==='you'?'Your':'Partner')+' pickaxes for pair '+(i+1));
+        inp.addEventListener('input',function(){e[side][i]=parseFloat(inp.value)||0;render();});
+        m.appendChild(inp);g.appendChild(m);
+      });
+      sp.appendChild(g);
+    });
+  }
+
+  const rw=document.getElementById('rankwrap');
+  rw.hidden=(e.kind==='stages');
+  if(!rw.hidden){
+    const rc=document.getElementById('rankcard');rc.innerHTML='';
+    const row=document.createElement('div');row.className='row';
+    const bag=rankBag(e.rank);
+    row.innerHTML='<span class="name"><b>Expected rank</b><small>'+
+      bagText(bag)+' \u00b7 worth '+fmt(bagValue(bag))+'</small></span>';
+    const inp=document.createElement('input');
+    inp.type='number';inp.min='1';inp.max='10';inp.step='1';inp.value=e.rank;
+    inp.setAttribute('aria-label','Expected team rank, 1 to 10');
+    inp.addEventListener('input',function(){
+      const v=parseInt(inp.value,10);
+      if(!v)return;
+      e.rank=Math.max(1,Math.min(10,v));
+      buildInputs();render();
+    });
+    inp.addEventListener('blur',function(){
+      if(inp.value!==String(e.rank)){inp.value=e.rank;}
+    });
+    row.appendChild(inp);rc.appendChild(row);
+  }
+
+  const el=document.getElementById('inputs');el.innerHTML='';
+  RES.filter(r=>!r.noval).forEach(r=>{
+    const row=document.createElement('div');row.className='row';
+    row.innerHTML='<span class="swatch" style="background:'+r.c+'"></span>'+
+      '<span class="name"><b>'+r.n+'</b></span>';
+    if(r.lock){
+      const sp2=document.createElement('span');sp2.className='locked';sp2.textContent='1';row.appendChild(sp2);
+    }else{
+      const inp=document.createElement('input');
+      inp.type='number';inp.min='0';inp.step='10';inp.value=VALS[r.k];
+      inp.setAttribute('aria-label',r.n+' value in pinballs');
+      inp.addEventListener('input',function(){VALS[r.k]=parseFloat(inp.value)||0;render();});
+      row.appendChild(inp);
+    }
+    el.appendChild(row);
+  });
+}
+
+const HEAT=[[0,[42,31,82]],[.28,[52,66,140]],[.55,[62,140,190]],[.78,[242,169,59]],[1,[255,96,38]]];
+const AVG =[[0,[64,50,120]],[.5,[150,110,190]],[1,[242,169,59]]];
+function mix(t,st){t=Math.max(0,Math.min(1,t));
+  for(let i=1;i<st.length;i++){if(t<=st[i][0]||i===st.length-1){
+    const a=st[i-1],b=st[i],f=Math.max(0,Math.min(1,(t-a[0])/((b[0]-a[0])||1)));
+    return a[1].map((c,j)=>Math.round(c+(b[1][j]-c)*f));}}}
+const rgba=(c,a)=>'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')';
+const open=new Set();
+
+function setReads(list){
+  const el=document.getElementById('reads');el.innerHTML='';
+  list.forEach(r=>{
+    const d=document.createElement('div');d.className='read';
+    d.innerHTML='<span>'+r[0]+'</span><b'+(r[2]?' style="color:'+r[2]+'"':'')+'>'+r[1]+'</b>';
+    el.appendChild(d);
+  });
+}
+
+function renderStages(){
+  const e=E();
+  const pick=e.spent*e.perPin;
+  const mine=e.you.reduce((a,b)=>a+b,0);
+  const left=pick-mine;
+  document.getElementById('chain').innerHTML=
+    '<b>'+fmt(e.spent)+'</b> pinballs <u>&rarr;</u> <b>'+fmt(pick)+'</b> pickaxes<br>'+
+    'allocated <b>'+fmt(mine)+'</b> across your four players &mdash; '+
+    (Math.abs(left)<0.5?'<b>fully spent</b>':
+      left>0?'<b>'+fmt(left)+'</b> unallocated':
+      '<span class="warn">'+fmt(-left)+' over budget</span>');
+
+  const pairs=e.you.map((v,i)=>{
+    const tot=v+e.mate[i];
+    const bag={},got=[];
+    e.S.forEach((st,si)=>{
+      const hit=tot>=st[0];
+      if(hit)for(const k in st[1])bag[k]=(bag[k]||0)+st[1][k];
+      got.push({i:si+1,need:st[0],rw:st[1],hit:hit});
+    });
+    return {i:i+1,you:v,mate:e.mate[i],tot:tot,bag:bag,got:got,
+            val:bagValue(bag),stages:got.filter(g=>g.hit).length};
+  });
+  const total={};
+  pairs.forEach(p=>{for(const k in p.bag)total[k]=(total[k]||0)+p.bag[k];});
+  const keys=total.key||0;
+  const kbag={},khit=[];
+  KEYREWARDS.forEach(([need,rw])=>{
+    const hit=keys>=need;
+    if(hit)for(const k in rw)kbag[k]=(kbag[k]||0)+rw[k];
+    khit.push({need:need,rw:rw,hit:hit});
+  });
+  for(const k in kbag)total[k]=(total[k]||0)+kbag[k];
+  const sum=pairs.reduce((a,p)=>a+p.val,0)+bagValue(kbag);
+
+  setReads([
+    ['Pickaxes',fmt(pick)],
+    ['Stages cleared',pairs.reduce((a,p)=>a+p.stages,0)+' / '+(4*e.S.length)],
+    ['Keys',keys+' / 16'],
+    ['Key rewards',fmt(bagValue(kbag))],
+    ['Total value',fmt(sum)],
+    ['Net vs spend',(sum-e.spent>=0?'+':'\u2212')+fmt(Math.abs(sum-e.spent)),
+      sum-e.spent>=0?'var(--good)':'var(--bad)']
+  ]);
+
+  const list=document.getElementById('pairlist');list.innerHTML='';
+  pairs.forEach(p=>{
+    const box=document.createElement('div');
+    box.className='pair'+(open.has('p'+p.i)?' open':'');
+    const next=p.got.find(g=>!g.hit);
+    box.innerHTML=
+      '<div class="pairhd"><span class="car">&#9656;</span>'+
+      '<span class="ttl">Pair '+p.i+' &middot; '+fmt(p.tot)+' pickaxes'+
+      '<small>you '+fmt(p.you)+' + partner '+fmt(p.mate)+' &middot; stage '+p.stages+'/'+e.S.length+
+      (next?' &middot; next at '+fmt(next.need):' &middot; complete')+'</small></span>'+
+      '<span class="val">'+fmt(p.val)+'</span></div>'+
+      '<div class="pairbody"><div style="padding:6px 0 2px">Cumulative: <b style="color:var(--cream)">'+
+      bagText(p.bag)+'</b></div>'+
+      p.got.map(g=>'<div class="stg'+(g.hit?'':' miss')+'"><span class="n">Stage '+g.i+
+        '</span><span class="r">'+bagText(g.rw)+'</span><span class="c">'+fmt(g.need)+'</span></div>').join('')+
+      '</div>';
+    box.querySelector('.pairhd').addEventListener('click',function(){
+      const k='p'+p.i;
+      if(open.has(k))open.delete(k);else open.add(k);
+      box.classList.toggle('open');
+    });
+    list.appendChild(box);
+  });
+  const kb=document.createElement('div');
+  kb.className='pair'+(open.has('keys')?' open':'');
+  const nk=khit.find(x=>!x.hit);
+  kb.innerHTML='<div class="pairhd"><span class="car">&#9656;</span>'+
+    '<span class="ttl">Key rewards &middot; '+keys+' keys'+
+    '<small>'+khit.filter(x=>x.hit).length+'/4 milestones'+
+    (nk?' &middot; next at '+nk.need+' keys':' &middot; all claimed')+'</small></span>'+
+    '<span class="val">'+fmt(bagValue(kbag))+'</span></div>'+
+    '<div class="pairbody"><div style="padding:6px 0 2px">Cumulative: <b style="color:var(--cream)">'+
+    bagText(kbag)+'</b></div>'+
+    khit.map(x=>'<div class="stg'+(x.hit?'':' miss')+'"><span class="n">'+x.need+
+      ' keys</span><span class="r">'+bagText(x.rw)+'</span><span class="c"></span></div>').join('')+
+    '</div>';
+  kb.querySelector('.pairhd').addEventListener('click',function(){
+    if(open.has('keys'))open.delete('keys');else open.add('keys');
+    kb.classList.toggle('open');
+  });
+  list.appendChild(kb);
+
+  document.getElementById('pairfoot').innerHTML=
+    'All four pairs together: <b>'+bagText(total)+'</b> &mdash; worth <b>'+fmt(sum)+
+    '</b> against <b>'+fmt(e.spent)+'</b> pinballs spent. '+
+    'A pair only counts its own combined pickaxes, so an uneven split wastes stages.';
+}
+
+function renderLadder(){
+  const e=E(), W=e.W;
+  const worth=t=>RES.reduce((s,r)=>s+(t[r.i]||0)*(VALS[r.k]||0),0);
+  const bagOf=t=>{const b={};RES.forEach(r=>{if(t[r.i])b[r.k]=t[r.i];});return b;};
+  const pts=pointsOf(e);
+
+  if(e.id==='fert'){
+    const g=grow(e);
+    document.getElementById('chain').innerHTML=
+      '<b>'+fmt(e.spent)+'</b> pinballs <u>&rarr;</u> <b>'+fmt(g.fert)+'</b> fertilizer<br>'+
+      'fed at <b>'+g.mult.toFixed(2)+'&times;</b> max speed: <b>'+sig(g.rate*10)+'</b> kg per 10 fertilizer'+
+      (e.crits?' (crit-adjusted)':'')+'<br>'+
+      '<b>'+fmt(g.fed)+'</b> kg fed + <b>'+fmt(g.natural)+'</b> kg grown over 72h at <b>'+g.amult.toFixed(2)+'&times;</b> average<br>'+
+      '<u>&rarr;</u> <b>'+fmt(pts)+'</b> kg = <b>'+fmt(pts)+'</b> points';
+  }else if(e.id==='zobo'||e.id==='mara'){
+    const mid=e.spent*e.perPin, own=mid*e.ptsPer*(e.id==='zobo'?1e-4:e.id==='mara'?1e3:1), pc=e.pct||100;
+    document.getElementById('chain').innerHTML=
+      '<b>'+fmt(e.spent)+'</b> pinballs <u>&rarr;</u> <b>'+fmt(mid)+'</b> '+e.units+' <u>&rarr;</u> '+
+      '<b>'+(e.id==='mara'?dist(own):fmt(own))+'</b> of your own<br>'+
+      'at <b>'+sig(pc)+'%</b> of the team <u>&rarr;</u> <b>'+
+      (e.id==='mara'?dist(pts):fmt(pts))+'</b> team total';
+  }else if(e.id==='rods'){
+    const rods=e.spent*e.perPin;
+    let left=rods,parts=[];
+    for(const [lo,hi,k] of LUCK){
+      const rate=e[k]||0;if(!rate||left<=0)break;
+      const cap=(hi-lo)/rate, used=Math.min(left,cap);
+      parts.push('<b>'+fmt(used)+'</b> at '+fmt(rate));left-=used;
+      if(left<=0)break;
+    }
+    document.getElementById('chain').innerHTML=
+      '<b>'+fmt(e.spent)+'</b> pinballs <u>&rarr;</u> <b>'+sig(rods)+'</b> rods<br>'+
+      'spent as '+parts.join(' <u>+</u> ')+' points per rod<br>'+
+      '<u>&rarr;</u> <b>'+fmt(pts)+'</b> points';
+  }else{
+    document.getElementById('chain').innerHTML=
+      '<b>'+fmt(e.spent)+'</b> pinballs <u>&rarr;</u> <b>'+sig(e.spent*e.perPin)+'</b> '+e.units+
+      ' <u>&rarr;</u> <b>'+fmt(pts)+'</b> points';
+  }
+
+  const maxPt=e.T[e.T.length-1][0];
+  const rows=[];
+  if(e.mode==='tiers'){
+    let cum=0,prev=0;
+    e.T.forEach(t=>{const v=worth(t);cum+=v;
+      rows.push({hi:t[0],lo:prev,v:v,cum:cum,avg:t[0]?cum/t[0]*1000:0,bag:bagOf(t)});prev=t[0];});
+    document.getElementById('hA').textContent='This tier';
+    document.getElementById('hB').textContent='Cumul./1K';
+  }else{
+    const N=Math.ceil(maxPt/W);let cum=0;
+    for(let i=1;i<=N;i++){
+      const hi=i*W,lo=hi-W,sel=e.T.filter(t=>t[0]>lo&&t[0]<=hi);
+      const v=sel.reduce((s,t)=>s+worth(t),0);cum+=v;
+      const b={};sel.forEach(t=>RES.forEach(r=>{if(t[r.i])b[r.k]=(b[r.k]||0)+t[r.i];}));
+      rows.push({hi:hi,lo:lo,v:v,cum:cum,avg:cum/i,bag:b});
+    }
+    document.getElementById('hA').textContent='This 500K';
+    document.getElementById('hB').textContent='Avg/500K';
+  }
+  document.getElementById('hC').textContent=
+    e.id==='zobo'?'Your coins':e.id==='mara'?'Your skates':e.id==='fert'?'Fertilizer':'Rods';
+
+  const spendFor=target=>currencyFor(e,target);
+  const done=rows.filter(r=>r.hi<=pts);
+  const ladder=done.length?done[done.length-1].cum:0;
+  const rbag=rankBag(e.rank), rval=bagValue(rbag);
+  const earned=ladder+rval;
+  const net=earned-e.spent;
+  const best=rows.reduce((a,b)=>b.avg>a.avg?b:a);
+  const total=rows[rows.length-1].cum;
+
+  setReads([
+    ['Earned so far',fmt(earned)],
+    ['Rank bonus','#'+e.rank+' \u00b7 '+fmt(rval)],
+    ['Net vs spend',(net>=0?'+':'\u2212')+fmt(Math.abs(net)),net>=0?'var(--good)':'var(--bad)'],
+    ['Best stop',tierLabel(e,best.hi)],
+    ['Spend for best',fmt(spendFor(best.hi)/(e.perPin||1))+' pb']
+  ]);
+
+  const vs=rows.map(r=>r.v),as=rows.map(r=>r.avg);
+  const vlo=Math.min.apply(null,vs),vhi=Math.max.apply(null,vs);
+  const alo=Math.min.apply(null,as),ahi=Math.max.apply(null,as);
+  const ln=v=>Math.sqrt((v-vlo)/((vhi-vlo)||1));
+  const an=v=>(v-alo)/((ahi-alo)||1);
+
+  const tb=document.getElementById('body');tb.innerHTML='';
+  const run={};
+  rows.forEach((r,idx)=>{
+    for(const k in r.bag)run[k]=(run[k]||0)+r.bag[k];
+    const snap=Object.assign({},run);
+    const key=e.id+':'+r.hi;
+    const tr=document.createElement('tr');
+    tr.className='tier'+(open.has(key)?' open':'');
+    if(pts>r.lo&&pts<=r.hi)tr.className+=' here';
+    else if(r.hi<pts)tr.className+=' past';
+    const t1=ln(r.v),t2=an(r.avg),c1=mix(t1,HEAT),c2=mix(t2,AVG);
+    tr.innerHTML='<td><span class="caret">&#9656;</span>'+tierLabel(e,r.hi)+'</td>'+
+      '<td style="color:var(--dim);font-size:11.5px">'+fmt(spendFor(r.hi))+'</td>'+
+      '<td class="heat" style="background:'+rgba(c1,.16+t1*.5)+';color:'+(t1>.6?'#150E29':'var(--cream)')+'">'+fmt(r.v)+'</td>'+
+      '<td>'+fmt(r.cum)+'</td>'+
+      '<td class="heat" style="background:'+rgba(c2,.12+t2*.42)+';color:'+(t2>.72?'#150E29':'var(--cream)')+'">'+fmt(r.avg)+'</td>';
+    const det=document.createElement('tr');det.className='det';det.hidden=!open.has(key);
+    det.innerHTML='<td colspan="5"><div class="detbox">'+
+      '<div><span class="lbl">This step</span><b>'+bagText(r.bag)+'</b></div>'+
+      '<div><span class="lbl">Cumulative</span><b>'+bagText(snap)+'</b></div></div></td>';
+    tr.addEventListener('click',function(){
+      if(open.has(key))open.delete(key);else open.add(key);
+      tr.classList.toggle('open');det.hidden=!det.hidden;
+    });
+    tb.appendChild(tr);tb.appendChild(det);
+  });
+  document.querySelectorAll('.railline').forEach(x=>x.remove());
+  const rail=document.createElement('div');rail.className='railline';
+  document.querySelector('.tbl').appendChild(rail);
+
+  const bar=st=>'linear-gradient(90deg,'+st.map(x=>'rgb('+mix(x[0],st).join(',')+') '+(x[0]*100)+'%').join(',')+')';
+  document.getElementById('ramp1').style.background=bar(HEAT);
+  document.getElementById('ramp2').style.background=bar(AVG);
+  document.getElementById('lgA').textContent=e.mode==='tiers'?'Value of that tier':'Value in that 500K';
+  document.getElementById('lgB').textContent=e.mode==='tiers'?'Cumulative per 1K':'Running average';
+  document.getElementById('ramp1lo').textContent=fmt(vlo);
+  document.getElementById('ramp1hi').textContent=fmt(vhi);
+  document.getElementById('ramp2lo').textContent=fmt(alo);
+  document.getElementById('ramp2hi').textContent=fmt(ahi);
+
+  const fullCost=spendFor(maxPt);
+  document.getElementById('foot').innerHTML=
+    'Peak running average sits at <b>'+tierLabel(e,best.hi)+'</b> ('+fmt(best.avg)+'), needing <b>'+
+    fmt(spendFor(best.hi)/(e.perPin||1))+'</b> pinballs. Finishing all '+tierLabel(e,maxPt)+
+    ' costs <b>'+fmt(fullCost/(e.perPin||1))+'</b> pinballs and returns '+fmt(total)+' &mdash; '+
+    (total>=fullCost/(e.perPin||1)
+      ? 'a net gain of <b>'+fmt(total-fullCost/(e.perPin||1))+'</b>.'
+      : 'a net loss of <b>'+fmt(fullCost/(e.perPin||1)-total)+'</b>.');
+}
+
+const NOTES={
+ rods:'Points per rod rise with base luck as you climb, so the rod column accounts for crossing each band rather than applying one flat rate.',
+ zobo:'Tiers are team totals. Your own coins are scaled up by your contribution share, so a lower share means the team reaches further than you paid for.',
+ mara:'Tiers are team totals and scale by your contribution share. Chests give one pick, resolved as wishbox &gt; pinball &gt; capsule &gt; skate, so skates and blue bento are never taken. Candy is excluded, and the 8.5&ndash;9.5km tiers are estimates.',
+ hunt:'Keys are not priced directly &mdash; they pay out through the 4/8/12/16 milestones. Each pair only counts its own combined pickaxes, and stage thresholds are cumulative, so a pair at 1,199 has cleared four stages rather than five.',
+ fert:'Feeding uses max growth speed &mdash; 10 fertilizer gives 50 kg, scaled by it, and by the 1.25&times; crit average when crits are on. Natural growth runs at average speed over a fixed 72 h, and its kg are free, so they are netted off the fertilizer column.',
+};
+function render(){
+  const e=E();
+  const nt=document.getElementById('note');
+  nt.hidden=!NOTES[e.id];
+  if(NOTES[e.id])nt.innerHTML=NOTES[e.id];
+  const stages=e.kind==='stages';
+  document.getElementById('ladder').hidden=stages;
+  document.getElementById('pairs').hidden=!stages;
+  if(stages)renderStages();else renderLadder();
+  paintTabs();
+}
+
+const tabs=document.querySelector('.tabs');
+EV.forEach((e,i)=>{
+  const b=document.createElement('button');
+  b.className='tab';b.setAttribute('role','tab');
+  b.setAttribute('aria-selected',i===0);b.innerHTML=e.label;
+  b.addEventListener('click',function(){
+    cur=i;
+    tabs.querySelectorAll('.tab').forEach((x,j)=>x.setAttribute('aria-selected',j===i));
+    buildInputs();render();
+  });
+  tabs.appendChild(b);
+});
+document.getElementById('reset').addEventListener('click',function(){
+  const d=DEF[cur],e=E();
+  Object.keys(d).forEach(k=>{if(d[k]!==undefined)e[k]=JSON.parse(JSON.stringify(d[k]));});
+  Object.assign(VALS,DEFVALS);
+  buildInputs();render();
+});
+buildInputs();render();
+</script>
