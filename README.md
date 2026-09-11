@@ -6,7 +6,7 @@ given spend, where the efficiency peaks, and which event is worth your time.
 
 No build step, no dependencies, no server. One HTML file.
 
-**Live:** https://YOURNAME.github.io/REPONAME/
+**Live:** https://dl-alt1.github.io/cocritter-event-calc/
 
 ---
 

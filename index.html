@@ -9,7 +9,9 @@
 body{margin:0;background:var(--void);color:var(--cream);
   font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13px;line-height:1.45;
   -webkit-text-size-adjust:100%}
-.wrap{max-width:640px;margin:0 auto;padding:20px 14px 60px}
+.wrap{max-width:1400px;margin:0 auto;padding:20px 24px 60px}
+.layout{display:grid;grid-template-columns:minmax(280px,360px) 1fr;gap:24px;align-items:start}
+@media(max-width:820px){.layout{grid-template-columns:1fr}}
 h1{font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:800;
   font-size:clamp(23px,6.6vw,34px);line-height:1.02;margin:0 0 6px;letter-spacing:-.02em}
 h1 em{font-style:normal;color:var(--accent)}
@@ -31,6 +33,8 @@ h2 .sub2{font-family:'IBM Plex Mono',monospace;font-weight:400;letter-spacing:0;
 .row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
 .swatch{width:12px;height:12px;border-radius:3px;flex:none}
+.icon{width:16px;height:16px;object-fit:contain;flex:none}
+.icon-inline{width:11px;height:11px;object-fit:contain;vertical-align:-1px;margin-right:3px}
 .name{flex:1;min-width:0}
 .name b{font-weight:500;display:block}
 .name small{color:var(--dim);font-size:10.5px;display:block;line-height:1.3}
@@ -44,7 +48,7 @@ input[type=number]:focus{outline:2px solid var(--accent);outline-offset:1px;bord
 .chain b{color:var(--cream);font-weight:500;font-variant-numeric:tabular-nums}
 .chain u{text-decoration:none;color:var(--accent)}
 .chain .warn{color:var(--bad)}
-.reads{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.reads{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:9px}
 .read{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
 .read span{display:block;color:var(--dim);font-size:10px;letter-spacing:.1em;text-transform:uppercase}
 .read b{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:20px;
@@ -101,6 +105,7 @@ button.reset:hover{border-color:var(--accent);color:var(--accent)}
 .budget b{color:var(--cream);font-weight:500}
 .budget b.warn{color:var(--bad)}
 .presets{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:2px 0 10px}
+.presets.global{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 .preset{background:var(--void);border:1px solid var(--line);color:var(--dim);border-radius:9px;
   padding:8px 4px;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:12px;
   cursor:pointer;line-height:1.2;transition:.15s}
@@ -139,8 +144,15 @@ button.reset:hover{border-color:var(--accent);color:var(--accent)}
 <h1>Event value <em>calculator</em></h1>
 <p class="sub">Price the rewards once, then see what each event pays back.</p>
 
+<div class="layout">
+<div class="col-left">
 <h2>Reward values <span class="sub2">shared by every event</span></h2>
 <div class="card" id="inputs"></div>
+</div>
+
+<div class="col-right">
+<h2>Presets <span class="sub2">set spend across every event</span></h2>
+<div class="presets" id="globalPresets"></div>
 
 <h2>Event</h2>
 <div class="tabs" role="tablist"></div>
@@ -156,17 +168,21 @@ button.reset:hover{border-color:var(--accent);color:var(--accent)}
 <p class="note" id="note" hidden></p>
 
 <div class="reads" id="reads"></div>
+</div>
+</div>
 
 <div id="ladder">
   <h2>Breakpoints <span class="sub2">tap a row</span></h2>
   <div class="tbl">
     <table>
-      <thead><tr><th>Reach</th><th id="hC">Need</th><th id="hA">Reward</th><th>Cumul.</th><th id="hB">Rate</th></tr></thead>
+      <thead><tr><th>Reach</th><th>Pinball</th><th id="hC">Need</th><th id="hA">Reward</th><th id="hM">Marginal ROI</th><th>Cumul.</th><th id="hB">Rate</th></tr></thead>
       <tbody id="body"></tbody>
     </table>
   </div>
   <div class="legend"><span id="lgA">Value</span><i id="ramp1"></i>
     <span id="ramp1lo"></span><span id="ramp1hi"></span></div>
+  <div class="legend"><span id="lgM">Marginal ROI %</span><i id="ramp3"></i>
+    <span id="ramp3lo"></span><span id="ramp3hi"></span></div>
   <div class="legend"><span id="lgB">Rate</span><i id="ramp2"></i>
     <span id="ramp2lo"></span><span id="ramp2hi"></span></div>
   <p class="foot" id="foot"></p>
@@ -287,36 +303,146 @@ const rankBag=r=>{const f=RANKS.find(x=>x[0]===Math.max(1,Math.min(10,r||1)));re
 const KEYSTAGES=HUNT_S.filter(x=>x[1].key).map(x=>x[0]);
 
 const RES=[
- {k:'pin', i:1,n:'Pinball',     c:'#9B7DF5', v:1, lock:true},
+ {k:'pin', i:1,n:'Pinball',     c:'#9B7DF5', v:1, lock:true, img:'https://clashofcritters.wiki.gg/images/Singular_Pinball.png?7c9a67'},
  {k:'cap', i:2,n:'Capsule',     c:'#7FD4F0', v:40},
- {k:'box', i:3,n:'Wishbox',     c:'#FF8A3D', v:600},
+ {k:'box', i:3,n:'Wishbox',     c:'#FF8A3D', v:600, img:'https://clashofcritters.wiki.gg/images/Wishbox.png?d0fac1'},
  {k:'blue',i:4,n:'Blue pack',   c:'#5BB8F5', v:0},
  {k:'purp',i:5,n:'Purple pack', c:'#C060E8', v:100},
- {k:'gold',i:6,n:'Gold pack',   c:'#F2A93B', v:600},
+ {k:'gold',i:6,n:'Gold pack',   c:'#F2A93B', v:200},
  {k:'key', i:7,n:'Key',         c:'#E8C45B', v:0, noval:true},
 ];
-const VALS={pin:1,cap:40,box:600,blue:0,purp:100,gold:600,key:0};
+const VALS={pin:1,cap:40,box:600,blue:0,purp:100,gold:200,key:0};
 const DEFVALS=Object.assign({},VALS);
 
 const EV=[
  {id:'rods',label:'Fishing',unit:'rod',units:'rods',accent:'#F2A93B',
-  T:RODS_T,W:5e5,mode:'tiers',rank:3,spent:20000,perPin:0.22,
+  T:RODS_T,W:5e5,mode:'tiers',rank:3,spent:20000,perPin:0.24,
   r1:1250,r2:1500,r3:1750,r4:2500},
  {id:'zobo',label:'Zobo Shooter',unit:'coin',units:'coins',accent:'#5BD6C0',
-  T:ZOBO_T,W:5e6,mode:'tiers',rank:3,spent:20000,perPin:22,ptsPer:200000,pct:25},
+  T:ZOBO_T,W:5e6,mode:'tiers',rank:3,spent:20000,perPin:24,ptsPer:200000,pct:25},
  {id:'mara',label:'Marathon Party',unit:'skate',units:'skates',accent:'#F27A9B',
-  T:MARA_T,W:1e4,mode:'tiers',rank:3,spent:20000,perPin:0.22,ptsPer:5,pct:25},
+  T:MARA_T,W:1e4,mode:'tiers',rank:3,spent:20000,perPin:0.24,ptsPer:5,pct:25},
  {id:'hunt',label:'Treasure Hunt',unit:'pickaxe',units:'pickaxes',accent:'#C9A227',
-  kind:'stages',S:HUNT_S,spent:20000,perPin:0.22,
+  kind:'stages',S:HUNT_S,spent:20000,perPin:0.24,
   share:2,you:[1595,1595,1595,1595],mate:[1595,1595,1595,1595]},
  {id:'fert',label:'Cozy Farm',unit:'fertilizer',units:'fertilizer',accent:'#6FD98F',
-  T:FERT_T,W:5e4,mode:'tiers',rank:3,spent:20000,perPin:0.44,speed:250,avg:150,crits:true},
+  T:FERT_T,W:5e4,mode:'tiers',rank:3,spent:20000,perPin:0.48,speed:250,avg:150,crits:true},
 ];
 const DEF=EV.map(e=>JSON.parse(JSON.stringify(
   {rank:e.rank,spent:e.spent,perPin:e.perPin,ptsPer:e.ptsPer,r1:e.r1,r2:e.r2,r3:e.r3,r4:e.r4,speed:e.speed,avg:e.avg,crits:e.crits,
    pct:e.pct,share:e.share,you:e.you,mate:e.mate})));
 let cur=0;
 const E=()=>EV[cur];
+
+const PRESETS=[
+ {id:'default',label:'Default',sub:'15k per event',rank:6,
+  spend:{rods:15000,zobo:15000,mara:15000,fert:15000},
+  hunt:{keyIdx:null,pinballs:15000,share:2}},
+ {id:'f2p',label:'F2P Recommendation',sub:'22k · 19k · 10k · 2 keys · 10k',rank:6,
+  spend:{rods:22000,zobo:19000,mara:10000,fert:10000},
+  hunt:{keyIdx:1,share:2}},
+ {id:'f2palt',label:'F2P with one alt',sub:'same, but partner covers 1 pair',rank:6,
+  spend:{rods:22000,zobo:19000,mara:10000,fert:10000},
+  hunt:{keyIdx:2,split:'altOne'}},
+];
+function presetOverride(p,e){
+  if(e.id==='hunt'){
+    if(p.hunt.keyIdx!=null){
+      const need=KEYSTAGES[p.hunt.keyIdx];
+      if(p.hunt.split==='altOne'){
+        const half=need/2;
+        return{share:2,you:[half,half,half,0],mate:[half,half,half,need]};
+      }
+      const parts=p.hunt.share||1,mine=need/parts;
+      return{share:parts,you:[mine,mine,mine,mine],
+        mate:[need-mine,need-mine,need-mine,need-mine]};
+    }
+    const parts=p.hunt.share||1;
+    const minePerPair=(p.hunt.pinballs*(e.perPin||1))/4;
+    return{share:parts,you:[minePerPair,minePerPair,minePerPair,minePerPair],
+      mate:[minePerPair,minePerPair,minePerPair,minePerPair]};
+  }
+  const ov={};
+  if(p.spend[e.id]!==undefined)ov.spent=p.spend[e.id];
+  if(p.rank!=null)ov.rank=p.rank;
+  return ov;
+}
+function applyPreset(p){
+  EV.forEach(e=>{Object.assign(e,presetOverride(p,e));});
+  buildInputs();render();
+}
+const numEq=(a,b)=>Math.abs((a||0)-(b||0))<1e-6;
+function matchesPreset(p){
+  return EV.every(e=>{
+    const ov=presetOverride(p,e);
+    return Object.keys(ov).every(k=>{
+      if(Array.isArray(ov[k]))return Array.isArray(e[k])&&ov[k].length===e[k].length&&
+        ov[k].every((v,i)=>numEq(v,e[k][i]));
+      return numEq(e[k],ov[k]);
+    });
+  });
+}
+function totalROIForState(overrideFn){
+  let val=0,cost=0;
+  EV.forEach(e=>{
+    const ce=overrideFn?Object.assign({},e,overrideFn(e)):e;
+    const s=summarise(ce);
+    val+=s.value;cost+=s.cost;
+  });
+  return cost>0?(val-cost)/cost*100:0;
+}
+const currentTotalROI=()=>totalROIForState(null);
+const presetTotalROI=p=>totalROIForState(e=>presetOverride(p,e));
+function renderPresets(){
+  const gp=document.getElementById('globalPresets');gp.classList.add('global');
+  gp.innerHTML='';
+  const activeP=PRESETS.find(matchesPreset);
+  PRESETS.forEach(p=>{
+    const b=document.createElement('button');b.type='button';
+    b.className='preset'+(p===activeP?' on':'');
+    b.title=p.sub;
+    const roi=presetTotalROI(p),sign=roi>=0?'+':'−';
+    b.innerHTML=p.label+'<small>'+sign+fmt(Math.abs(roi))+'% total ROI</small>';
+    b.addEventListener('click',function(){applyPreset(p);});
+    gp.appendChild(b);
+  });
+  if(!activeP){
+    const roi=currentTotalROI(),sign=roi>=0?'+':'−';
+    const b=document.createElement('button');b.type='button';b.className='preset on';
+    b.disabled=true;
+    b.innerHTML='Custom<small>'+sign+fmt(Math.abs(roi))+'% total ROI</small>';
+    gp.appendChild(b);
+  }
+}
+
+const STORAGE_KEY='coc-event-calc-v1';
+function saveState(){
+  try{
+    const state={
+      cur:cur,
+      vals:VALS,
+      ev:EV.map(e=>({rank:e.rank,spent:e.spent,perPin:e.perPin,ptsPer:e.ptsPer,
+        r1:e.r1,r2:e.r2,r3:e.r3,r4:e.r4,speed:e.speed,avg:e.avg,crits:e.crits,
+        pct:e.pct,share:e.share,you:e.you,mate:e.mate}))
+    };
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+  }catch(err){}
+}
+function loadState(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(!raw)return;
+    const state=JSON.parse(raw);
+    if(state.vals)Object.assign(VALS,state.vals);
+    if(Array.isArray(state.ev)){
+      state.ev.forEach((s,i)=>{
+        if(!EV[i]||!s)return;
+        Object.keys(s).forEach(k=>{if(s[k]!==undefined)EV[i][k]=s[k];});
+      });
+    }
+    if(typeof state.cur==='number'&&EV[state.cur])cur=state.cur;
+  }catch(err){}
+}
 
 const fmt=n=>Math.round(n).toLocaleString('en-US');
 const sig=n=>n>=100?fmt(n):(Math.round(n*100)/100).toLocaleString('en-US');
@@ -363,7 +489,7 @@ function grow(e){
 function pointsOf(e){
   if(e.id==='fert')return grow(e).total;
   if(e.id==='rods')return pointsFromRods(e,e.spent*e.perPin);
-  const own=e.spent*e.perPin*e.ptsPer*(e.id==='zobo'?1e-4:e.id==='mara'?1e3:1);
+  const own=e.spent*e.perPin*e.ptsPer*(e.id==='zobo'?1e-4:1);
   const pct=Math.max(0.0001,(e.pct||100)/100);
   return (e.id==='zobo'||e.id==='mara')?own/pct:own;
 }
@@ -372,14 +498,17 @@ function currencyFor(e,target){
   if(e.id==='rods')return rodsFor(e,target);
   if(e.id==='zobo'||e.id==='mara'){
     const pct=Math.max(0.0001,(e.pct||100)/100);
-    const per=e.ptsPer*(e.id==='zobo'?1e-4:e.id==='mara'?1e3:1);
+    const per=e.ptsPer*(e.id==='zobo'?1e-4:1);
     return per?target*pct/per:0;}
   return e.ptsPer?target/e.ptsPer:0;
 }
 const bagValue=b=>RES.reduce((a,r)=>a+(b[r.k]||0)*(VALS[r.k]||0),0);
 const bagText=b=>{
   const p=[];
-  RES.forEach(r=>{if(b[r.k])p.push(fmt(b[r.k])+' '+r.n.toLowerCase()+(b[r.k]>1&&r.k!=='pin'?(r.k==='box'?'es':'s'):''));});
+  RES.forEach(r=>{if(b[r.k]){
+    const icon=r.img?'<img class="icon-inline" src="'+r.img+'" alt="">':'';
+    p.push(icon+fmt(b[r.k])+' '+r.n.toLowerCase()+(b[r.k]>1&&r.k!=='pin'?(r.k==='box'?'es':'s'):''));
+  }});
   return p.length?p.join(' + '):'nothing';
 };
 
@@ -407,16 +536,12 @@ function roiOf(e){
   const {value,cost}=summarise(e);
   return cost>0?(value-cost)/cost*100:0;
 }
-const ORD=n=>n+(['th','st','nd','rd'][(n%100-n%10!=10)*(n%10<4)*n%10]||'th');
-
 function paintTabs(){
   const scored=EV.map((e,i)=>({i:i,r:roiOf(e)}));
-  const order=scored.slice().sort((a,b)=>b.r-a.r);
-  const place={};order.forEach((x,n)=>place[x.i]=n+1);
   document.querySelectorAll('.tab').forEach((b,i)=>{
     const r=scored[i].r;
     const sign=r>=0?'+':'\u2212';
-    b.innerHTML=EV[i].label+'<small>'+ORD(place[i])+' &middot; '+sign+
+    b.innerHTML=EV[i].label+'<small>'+fmt(EV[i].spent)+' pb &middot; '+sign+
       fmt(Math.abs(r))+'%</small>';
   });
 }
@@ -434,10 +559,9 @@ const SPEND={
        {k:'pct',n:'Your contribution %',d:'your share of the team total',step:5}],
  mara:[{k:'spent',n:'Total pinballs spent',d:'your own spend',step:1000},
        {k:'perPin',n:'Skates per pinball',d:'conversion rate',step:0.05},
-       {k:'ptsPer',n:'Kilometres per skate',d:'distance each skate covers',step:1},
+       {k:'ptsPer',n:'Metres per skate',d:'distance each skate covers',step:1},
        {k:'pct',n:'Your contribution %',d:'your share of the team total',step:5}],
- hunt:[{k:'spent',n:'Total pinballs spent',d:'your own spend',step:1000},
-       {k:'perPin',n:'Pickaxes per pinball',d:'conversion rate',step:0.05}],
+ hunt:[{k:'perPin',n:'Pickaxes per pinball',d:'conversion rate',step:0.05}],
  fert:[{k:'spent',n:'Total pinballs spent',d:'what you put into Cozy Farm',step:1000},
        {k:'perPin',n:'Fertilizer per pinball',d:'conversion rate',step:0.05},
        {k:'speed',n:'Max growth speed %',d:'applies to feeding; 250 gives 175 kg per 10 fertilizer',step:1},
@@ -475,11 +599,34 @@ function buildInputs(){
     sw.appendChild(kn);lab.appendChild(cb);lab.appendChild(sw);row.appendChild(lab);sp.appendChild(row);
   }
   if(e.id==='hunt'){
+    const refreshHuntSummary=()=>{
+      const mine=e.you.reduce((a,b)=>a+b,0);
+      e.spent=mine/(e.perPin||1);
+      const pbEl=document.getElementById('huntSpentVal');
+      const pkEl=document.getElementById('huntPickVal');
+      const tgEl=document.getElementById('huntTargetVal');
+      if(pbEl)pbEl.textContent=fmt(e.spent);
+      if(pkEl)pkEl.textContent=fmt(mine);
+      if(tgEl)tgEl.textContent=fmt(e.spent)+' pb';
+    };
+    refreshHuntSummary();
+
+    const pbRow=document.createElement('div');pbRow.className='row';
+    pbRow.innerHTML='<span class="name"><b>Pinball required</b><small>pinballs needed for your '+
+      'current contribution, at this conversion rate</small></span>'+
+      '<span class="locked" id="huntSpentVal">'+fmt(e.spent)+'</span>';
+    sp.appendChild(pbRow);
+
+    const tot=document.createElement('div');tot.className='row';
+    tot.innerHTML='<span class="name"><b>Total pickaxes</b><small>sum of your contribution '+
+      'across all four pairs</small></span><span class="locked" id="huntPickVal">'+
+      fmt(e.you.reduce((a,b)=>a+b,0))+'</span>';
+    sp.appendChild(tot);
+
     const ph=document.createElement('div');ph.className='row';
-    const mineNow=e.you.reduce((a,b)=>a+b,0);
     ph.innerHTML='<span class="name"><b>Target</b><small>pinballs you need for that many keys '+
       'across all four pairs, at '+(e.share===2?'an even split':'solo')+
-      ' &middot; currently <b style="color:var(--cream)">'+fmt(mineNow/(e.perPin||1))+
+      ' &middot; currently <b id="huntTargetVal" style="color:var(--cream)">'+fmt(e.spent)+
       ' pb</b></small></span>';
     sp.appendChild(ph);
     const pr=document.createElement('div');pr.className='presets';
@@ -497,12 +644,6 @@ function buildInputs(){
       pr.appendChild(b);
     });
     sp.appendChild(pr);
-    const bl=document.createElement('div');bl.className='budget';
-    const have=e.spent, needNow=e.you.reduce((a,b)=>a+b,0)/(e.perPin||1);
-    bl.innerHTML=needNow<=have
-      ? 'Your '+fmt(have)+' pinballs cover this with <b>'+fmt(have-needNow)+'</b> to spare.'
-      : 'Short by <b class="warn">'+fmt(needNow-have)+'</b> pinballs &mdash; raise total spend or switch to Split.';
-    sp.appendChild(bl);
     ['you','mate'].forEach(side=>{
       const hd=document.createElement('div');hd.className='row';
       hd.innerHTML='<span class="name"><b>'+(side==='you'?'Your contribution':'Partner contribution')+
@@ -534,7 +675,11 @@ function buildInputs(){
         const inp=document.createElement('input');
         inp.type='number';inp.min='0';inp.step='50';inp.value=v;
         inp.setAttribute('aria-label',(side==='you'?'Your':'Partner')+' pickaxes for pair '+(i+1));
-        inp.addEventListener('input',function(){e[side][i]=parseFloat(inp.value)||0;render();});
+        inp.addEventListener('input',function(){
+          e[side][i]=parseFloat(inp.value)||0;
+          if(side==='you')refreshHuntSummary();
+          render();
+        });
         m.appendChild(inp);g.appendChild(m);
       });
       sp.appendChild(g);
@@ -567,7 +712,8 @@ function buildInputs(){
   const el=document.getElementById('inputs');el.innerHTML='';
   RES.filter(r=>!r.noval).forEach(r=>{
     const row=document.createElement('div');row.className='row';
-    row.innerHTML='<span class="swatch" style="background:'+r.c+'"></span>'+
+    row.innerHTML=(r.img?'<img class="icon" src="'+r.img+'" alt="">':
+        '<span class="swatch" style="background:'+r.c+'"></span>')+
       '<span class="name"><b>'+r.n+'</b></span>';
     if(r.lock){
       const sp2=document.createElement('span');sp2.className='locked';sp2.textContent='1';row.appendChild(sp2);
@@ -602,15 +748,12 @@ function setReads(list){
 
 function renderStages(){
   const e=E();
-  const pick=e.spent*e.perPin;
   const mine=e.you.reduce((a,b)=>a+b,0);
-  const left=pick-mine;
+  e.spent=mine/(e.perPin||1);
+  const pick=mine;
   document.getElementById('chain').innerHTML=
-    '<b>'+fmt(e.spent)+'</b> pinballs <u>&rarr;</u> <b>'+fmt(pick)+'</b> pickaxes<br>'+
-    'allocated <b>'+fmt(mine)+'</b> across your four players &mdash; '+
-    (Math.abs(left)<0.5?'<b>fully spent</b>':
-      left>0?'<b>'+fmt(left)+'</b> unallocated':
-      '<span class="warn">'+fmt(-left)+' over budget</span>');
+    '<b>'+fmt(e.spent)+'</b> pinballs <u>&rarr;</u> <b>'+fmt(pick)+'</b> pickaxes, '+
+    'allocated across your four players.';
 
   const pairs=e.you.map((v,i)=>{
     const tot=v+e.mate[i];
@@ -708,7 +851,7 @@ function renderLadder(){
       '<b>'+fmt(g.fed)+'</b> kg fed + <b>'+fmt(g.natural)+'</b> kg grown over 72h at <b>'+g.amult.toFixed(2)+'&times;</b> average<br>'+
       '<u>&rarr;</u> <b>'+fmt(pts)+'</b> kg = <b>'+fmt(pts)+'</b> points';
   }else if(e.id==='zobo'||e.id==='mara'){
-    const mid=e.spent*e.perPin, own=mid*e.ptsPer*(e.id==='zobo'?1e-4:e.id==='mara'?1e3:1), pc=e.pct||100;
+    const mid=e.spent*e.perPin, own=mid*e.ptsPer*(e.id==='zobo'?1e-4:1), pc=e.pct||100;
     document.getElementById('chain').innerHTML=
       '<b>'+fmt(e.spent)+'</b> pinballs <u>&rarr;</u> <b>'+fmt(mid)+'</b> '+e.units+' <u>&rarr;</u> '+
       '<b>'+(e.id==='mara'?dist(own):fmt(own))+'</b> of your own<br>'+
@@ -733,25 +876,29 @@ function renderLadder(){
       ' <u>&rarr;</u> <b>'+fmt(pts)+'</b> points';
   }
 
+  const pbFor=target=>currencyFor(e,target)/(e.perPin||1);
   const maxPt=e.T[e.T.length-1][0];
   const rows=[];
   if(e.mode==='tiers'){
-    let cum=0,prev=0;
-    e.T.forEach(t=>{const v=worth(t);cum+=v;
-      rows.push({hi:t[0],lo:prev,v:v,cum:cum,avg:t[0]?cum/t[0]*1000:0,bag:bagOf(t)});prev=t[0];});
+    let cum=0,prev=0,prevPb=0;
+    e.T.forEach(t=>{const v=worth(t);cum+=v;const pb=pbFor(t[0]);const mpb=pb-prevPb;
+      rows.push({hi:t[0],lo:prev,v:v,cum:cum,pb:pb,roi:pb>0?(cum-pb)/pb*100:0,
+        mroi:mpb>0?(v-mpb)/mpb*100:0,bag:bagOf(t)});prev=t[0];prevPb=pb;});
     document.getElementById('hA').textContent='This tier';
-    document.getElementById('hB').textContent='Cumul./1K';
   }else{
-    const N=Math.ceil(maxPt/W);let cum=0;
+    const N=Math.ceil(maxPt/W);let cum=0,prevPb=0;
     for(let i=1;i<=N;i++){
       const hi=i*W,lo=hi-W,sel=e.T.filter(t=>t[0]>lo&&t[0]<=hi);
       const v=sel.reduce((s,t)=>s+worth(t),0);cum+=v;
       const b={};sel.forEach(t=>RES.forEach(r=>{if(t[r.i])b[r.k]=(b[r.k]||0)+t[r.i];}));
-      rows.push({hi:hi,lo:lo,v:v,cum:cum,avg:cum/i,bag:b});
+      const pb=pbFor(hi);const mpb=pb-prevPb;
+      rows.push({hi:hi,lo:lo,v:v,cum:cum,pb:pb,roi:pb>0?(cum-pb)/pb*100:0,
+        mroi:mpb>0?(v-mpb)/mpb*100:0,bag:b});
+      prevPb=pb;
     }
     document.getElementById('hA').textContent='This 500K';
-    document.getElementById('hB').textContent='Avg/500K';
   }
+  document.getElementById('hB').textContent='ROI %';
   document.getElementById('hC').textContent=
     e.id==='zobo'?'Your coins':e.id==='mara'?'Your skates':e.id==='fert'?'Fertilizer':'Rods';
 
@@ -761,7 +908,7 @@ function renderLadder(){
   const rbag=rankBag(e.rank), rval=bagValue(rbag);
   const earned=ladder+rval;
   const net=earned-e.spent;
-  const best=rows.reduce((a,b)=>b.avg>a.avg?b:a);
+  const best=rows.reduce((a,b)=>b.roi>a.roi?b:a);
   const total=rows[rows.length-1].cum;
 
   setReads([
@@ -772,11 +919,13 @@ function renderLadder(){
     ['Spend for best',fmt(spendFor(best.hi)/(e.perPin||1))+' pb']
   ]);
 
-  const vs=rows.map(r=>r.v),as=rows.map(r=>r.avg);
+  const vs=rows.map(r=>r.v),as=rows.map(r=>r.roi),ms=rows.map(r=>r.mroi);
   const vlo=Math.min.apply(null,vs),vhi=Math.max.apply(null,vs);
   const alo=Math.min.apply(null,as),ahi=Math.max.apply(null,as);
+  const mlo=Math.min.apply(null,ms),mhi=Math.max.apply(null,ms);
   const ln=v=>Math.sqrt((v-vlo)/((vhi-vlo)||1));
   const an=v=>(v-alo)/((ahi-alo)||1);
+  const mn=v=>(v-mlo)/((mhi-mlo)||1);
 
   const tb=document.getElementById('body');tb.innerHTML='';
   const run={};
@@ -788,14 +937,18 @@ function renderLadder(){
     tr.className='tier'+(open.has(key)?' open':'');
     if(pts>r.lo&&pts<=r.hi)tr.className+=' here';
     else if(r.hi<pts)tr.className+=' past';
-    const t1=ln(r.v),t2=an(r.avg),c1=mix(t1,HEAT),c2=mix(t2,AVG);
+    const t1=ln(r.v),t2=an(r.roi),t3=mn(r.mroi),c1=mix(t1,HEAT),c2=mix(t2,AVG),c3=mix(t3,AVG);
+    const roiTxt=(r.roi>=0?'+':'−')+fmt(Math.abs(r.roi))+'%';
+    const mroiTxt=(r.mroi>=0?'+':'−')+fmt(Math.abs(r.mroi))+'%';
     tr.innerHTML='<td><span class="caret">&#9656;</span>'+tierLabel(e,r.hi)+'</td>'+
+      '<td style="color:var(--dim);font-size:11.5px">'+fmt(r.pb)+'</td>'+
       '<td style="color:var(--dim);font-size:11.5px">'+fmt(spendFor(r.hi))+'</td>'+
       '<td class="heat" style="background:'+rgba(c1,.16+t1*.5)+';color:'+(t1>.6?'#150E29':'var(--cream)')+'">'+fmt(r.v)+'</td>'+
+      '<td class="heat" style="background:'+rgba(c3,.12+t3*.42)+';color:'+(t3>.72?'#150E29':'var(--cream)')+'">'+mroiTxt+'</td>'+
       '<td>'+fmt(r.cum)+'</td>'+
-      '<td class="heat" style="background:'+rgba(c2,.12+t2*.42)+';color:'+(t2>.72?'#150E29':'var(--cream)')+'">'+fmt(r.avg)+'</td>';
+      '<td class="heat" style="background:'+rgba(c2,.12+t2*.42)+';color:'+(t2>.72?'#150E29':'var(--cream)')+'">'+roiTxt+'</td>';
     const det=document.createElement('tr');det.className='det';det.hidden=!open.has(key);
-    det.innerHTML='<td colspan="5"><div class="detbox">'+
+    det.innerHTML='<td colspan="7"><div class="detbox">'+
       '<div><span class="lbl">This step</span><b>'+bagText(r.bag)+'</b></div>'+
       '<div><span class="lbl">Cumulative</span><b>'+bagText(snap)+'</b></div></div></td>';
     tr.addEventListener('click',function(){
@@ -811,16 +964,19 @@ function renderLadder(){
   const bar=st=>'linear-gradient(90deg,'+st.map(x=>'rgb('+mix(x[0],st).join(',')+') '+(x[0]*100)+'%').join(',')+')';
   document.getElementById('ramp1').style.background=bar(HEAT);
   document.getElementById('ramp2').style.background=bar(AVG);
+  document.getElementById('ramp3').style.background=bar(AVG);
   document.getElementById('lgA').textContent=e.mode==='tiers'?'Value of that tier':'Value in that 500K';
-  document.getElementById('lgB').textContent=e.mode==='tiers'?'Cumulative per 1K':'Running average';
+  document.getElementById('lgB').textContent='Cumulative ROI %';
   document.getElementById('ramp1lo').textContent=fmt(vlo);
   document.getElementById('ramp1hi').textContent=fmt(vhi);
-  document.getElementById('ramp2lo').textContent=fmt(alo);
-  document.getElementById('ramp2hi').textContent=fmt(ahi);
+  document.getElementById('ramp2lo').textContent=(alo>=0?'+':'−')+fmt(Math.abs(alo))+'%';
+  document.getElementById('ramp2hi').textContent=(ahi>=0?'+':'−')+fmt(Math.abs(ahi))+'%';
+  document.getElementById('ramp3lo').textContent=(mlo>=0?'+':'−')+fmt(Math.abs(mlo))+'%';
+  document.getElementById('ramp3hi').textContent=(mhi>=0?'+':'−')+fmt(Math.abs(mhi))+'%';
 
   const fullCost=spendFor(maxPt);
   document.getElementById('foot').innerHTML=
-    'Peak running average sits at <b>'+tierLabel(e,best.hi)+'</b> ('+fmt(best.avg)+'), needing <b>'+
+    'Peak ROI sits at <b>'+tierLabel(e,best.hi)+'</b> ('+(best.roi>=0?'+':'−')+fmt(Math.abs(best.roi))+'%), needing <b>'+
     fmt(spendFor(best.hi)/(e.perPin||1))+'</b> pinballs. Finishing all '+tierLabel(e,maxPt)+
     ' costs <b>'+fmt(fullCost/(e.perPin||1))+'</b> pinballs and returns '+fmt(total)+' &mdash; '+
     (total>=fullCost/(e.perPin||1)
@@ -845,13 +1001,17 @@ function render(){
   document.getElementById('pairs').hidden=!stages;
   if(stages)renderStages();else renderLadder();
   paintTabs();
+  renderPresets();
+  saveState();
 }
+
+loadState();
 
 const tabs=document.querySelector('.tabs');
 EV.forEach((e,i)=>{
   const b=document.createElement('button');
   b.className='tab';b.setAttribute('role','tab');
-  b.setAttribute('aria-selected',i===0);b.innerHTML=e.label;
+  b.setAttribute('aria-selected',i===cur);b.innerHTML=e.label;
   b.addEventListener('click',function(){
     cur=i;
     tabs.querySelectorAll('.tab').forEach((x,j)=>x.setAttribute('aria-selected',j===i));
